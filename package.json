@@ -1,0 +1,43 @@
+{
+  "name": "react-audit-pro",
+  "version": "0.1.2",
+  "description": "CLI d'audit React qui analyse l'architecture, la performance, les tests et le TypeScript d'un projet.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "react-audit": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node --input-type=module -e \"import fs from 'node:fs'; fs.rmSync('dist', { recursive: true, force: true });\"",
+    "dev": "node --watch ./dist/cli.js",
+    "pack:dry": "npm pack --dry-run",
+    "prepublishOnly": "npm run clean && npm run typecheck && npm test && npm run build",
+    "release": "npm run clean && npm run typecheck && npm test && npm run build && npm run pack:dry",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.28.3",
+    "@babel/traverse": "^7.28.3",
+    "commander": "^13.1.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/babel__traverse": "^7.28.0",
+    "@types/node": "^22.18.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
