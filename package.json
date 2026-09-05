@@ -1,7 +1,7 @@
 {
   "name": "react-audit-pro",
   "version": "0.1.2",
-  "description": "CLI d'audit React qui analyse l'architecture, la performance, les tests et le TypeScript d'un projet.",
+  "description": "React audit CLI that analyzes a project's architecture, performance, tests, and TypeScript.",
   "type": "module",
   "license": "MIT",
   "bin": {

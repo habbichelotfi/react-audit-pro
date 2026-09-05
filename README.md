@@ -1,19 +1,19 @@
 # react-audit-pro
 
-CLI d'audit pour projets React qui analyse l'architecture, la performance, les tests et le TypeScript. Génère un score global avec recommandations actionnables.
+CLI audit tool for React projects that analyzes architecture, performance, tests, and TypeScript. Generates an overall score with actionable recommendations.
 
-## Fonctionnalités
+## Features
 
-- Analyse AST React via Babel
-- Détection de composants trop volumineux (>300 lignes)
-- Vérification des `useEffect` et dépendances manquantes
-- Détection des listes sans `key`
-- Analyse TypeScript (usage excessif de `any`)
-- Estimation heuristique du bundle
-- Analyse des tests et maintenabilité
-- Rapports texte, JSON et HTML
-- Suggestions IA optionnelles (OpenAI / Azure OpenAI)
-- Score global sur 100
+- React AST analysis via Babel
+- Detection of oversized components (>300 lines)
+- `useEffect` and missing dependency checks
+- Detection of lists without a `key`
+- TypeScript analysis (excessive `any` usage)
+- Heuristic bundle estimation
+- Test and maintainability analysis
+- Text, JSON, and HTML reports
+- Optional AI suggestions (OpenAI / Azure OpenAI)
+- Overall score out of 100
 
 ## Installation
 
@@ -21,49 +21,49 @@ CLI d'audit pour projets React qui analyse l'architecture, la performance, les t
 npm install react-audit-pro
 ```
 
-## Utilisation
+## Usage
 
-### Analyse du projet courant
+### Analyze the current project
 
 ```bash
 npx react-audit
 ```
 
-### Analyse d'un dossier précis
+### Analyze a specific directory
 
 ```bash
 npx react-audit ./mon-projet
 ```
 
-### Générer un rapport HTML
+### Generate an HTML report
 
 ```bash
 npx react-audit . --format html
 ```
 
-Le rapport sera sauvegardé dans `report.html`.
+The report is saved to `report.html`.
 
-### Générer un rapport JSON
+### Generate a JSON report
 
 ```bash
 npx react-audit . --format json
 ```
 
-### Forcer un fichier de sortie
+### Set an explicit output file
 
 ```bash
 npx react-audit . --format html --output mon-rapport.html
 ```
 
-### Activer les suggestions IA
+### Enable AI suggestions
 
 ```bash
 npx react-audit . --ai
 ```
 
-Nécessite une clé API OpenAI ou Azure OpenAI.
+Requires an OpenAI or Azure OpenAI API key.
 
-## Configuration IA
+## AI configuration
 
 ### OpenAI
 
@@ -74,10 +74,10 @@ export OPENAI_MODEL="gpt-4o-mini"  # optionnel
 npx react-audit . --ai
 ```
 
-Variables disponibles :
-- `OPENAI_API_KEY` (requis)
-- `OPENAI_MODEL` (optionnel, défaut : `gpt-4o-mini`)
-- `OPENAI_BASE_URL` (optionnel)
+Available variables:
+- `OPENAI_API_KEY` (required)
+- `OPENAI_MODEL` (optional, default: `gpt-4o-mini`)
+- `OPENAI_BASE_URL` (optional)
 
 ### Azure OpenAI
 
@@ -89,72 +89,72 @@ export AZURE_OPENAI_DEPLOYMENT="..."
 npx react-audit . --ai --ai-provider azure
 ```
 
-Variables disponibles :
-- `AZURE_OPENAI_API_KEY` (requis)
-- `AZURE_OPENAI_ENDPOINT` (requis)
-- `AZURE_OPENAI_DEPLOYMENT` (requis)
-- `AZURE_OPENAI_API_VERSION` (optionnel)
+Available variables:
+- `AZURE_OPENAI_API_KEY` (required)
+- `AZURE_OPENAI_ENDPOINT` (required)
+- `AZURE_OPENAI_DEPLOYMENT` (required)
+- `AZURE_OPENAI_API_VERSION` (optional)
 
-## Options CLI
+## CLI options
 
 ```
 Usage: react-audit [options] [target]
 
-Analyse un projet React et génère un score de qualité avec recommandations.
+Analyze a React project and generate a quality score with recommendations.
 
 Arguments:
-  target                        Répertoire du projet à analyser (défaut: ".")
+  target                        Project directory to analyze (default: ".")
 
 Options:
-  -f, --format <format>         Format de sortie : text | json | html (défaut: "text")
-  -o, --output <file>           Fichier de sortie pour le rapport
-  --ai                          Activer les suggestions IA
-  --ai-provider <provider>      openai | azure | auto (défaut: "auto")
-  --ai-model <model>            Modèle IA à utiliser
-  --ai-base-url <url>           URL de base pour OpenAI (optionnel)
-  --ai-api-key <key>            Clé API (optionnel, utilise env sinon)
-  --ai-deployment <deployment>  Déploiement Azure OpenAI
-  --ai-api-version <version>    Version API Azure OpenAI
-  -h, --help                    Afficher l'aide
+  -f, --format <format>         Output format: text | json | html (default: "text")
+  -o, --output <file>           Output file for the report
+  --ai                          Enable AI suggestions
+  --ai-provider <provider>      openai | azure | auto (default: "auto")
+  --ai-model <model>            AI model to use
+  --ai-base-url <url>           OpenAI base URL (optional)
+  --ai-api-key <key>            API key (optional, uses env otherwise)
+  --ai-deployment <deployment>  Azure OpenAI deployment
+  --ai-api-version <version>    Azure OpenAI API version
+  -h, --help                    Display help
 ```
 
-## Exemple de sortie
+## Example output
 
 ```text
-Analyse du projet...
+Analyzing project...
 
-[OK] React 19 détecté
-[OK] TypeScript activé
+[OK] React 19 detected
+[OK] TypeScript enabled
 
-[WARN] Problèmes détectés :
+[WARN] Detected issues:
 
-1. 3 composant(s) trop volumineux détecté(s)
-   Fichier : src/components/Dashboard.tsx:1
-   Certains composants dépassent le seuil recommandé de 300 lignes.
-   Suggestions :
-   - Extraire les hooks métier.
-   - Séparer l'UI et la logique.
+1. 3 oversized component(s) detected
+   File: src/components/Dashboard.tsx:1
+   Some components exceed the recommended limit of 300 lines.
+   Suggestions:
+   - Extract domain hooks.
+   - Separate UI from logic.
 
-2. 1 useEffect potentiellement problématique(s)
-   useEffect probablement utilisé pour synchroniser une prop vers le state
-   Suggestions :
-   - Utiliser directement la prop lorsque c'est possible.
-   - Extraire une valeur dérivée au lieu de la stocker dans un state.
+2. 1 potentially problematic useEffect
+   useEffect may be synchronizing a prop to state
+   Suggestions:
+   - Use the prop directly when possible.
+   - Extract a derived value instead of storing it in state.
 
-Détail du score :
-- Architecture : 20/20
-- Performance : 20/20
-- Tests : 20/20
-- TypeScript : 18/20
-- Maintenabilité : 18/20
+Score breakdown:
+- Architecture: 20/20
+- Performance: 20/20
+- Tests: 20/20
+- TypeScript: 18/20
+- Maintainability: 18/20
 
-Score global : 96/100
+Overall score: 96/100
 
-Recommandations prioritaires :
-1. Réduire les any avec des interfaces explicites ou des types génériques.
+Priority recommendations:
+1. Reduce any usage with explicit interfaces or generic types.
 ```
 
-## Développement
+## Development
 
 ```bash
 npm install
@@ -163,7 +163,7 @@ npm run test
 npm run typecheck
 ```
 
-### Checklist de release
+### Release checklist
 
 ```bash
 npm run release
@@ -171,21 +171,21 @@ npm version patch
 npm publish --access public
 ```
 
-Voir `RELEASE.md` pour la procédure complète.
+See `RELEASE.md` for the complete procedure.
 
-## Cas d'usage
+## Use cases
 
-- **CI/CD** : Intégrez dans vos pipelines pour surveiller la qualité React
-- **Code review** : Utilisez comme standard de qualité pour les PR
-- **Audit codebase** : Analysez rapidement l'état d'un projet React
-- **Refactoring** : Identifiez les composants à découper et les hooks à optimiser
-- **Formation** : Sensibilisez les équipes aux bonnes pratiques React
+- **CI/CD**: Integrate it into your pipelines to monitor React quality
+- **Code review**: Use it as a quality standard for pull requests
+- **Codebase audit**: Quickly assess the state of a React project
+- **Refactoring**: Identify components to split and hooks to optimize
+- **Training**: Help teams learn React best practices
 
-## Licence
+## License
 
 MIT
 
 ---
 
-Questions ? Besoin d'une fonctionnalité ? Ouvrez une issue sur GitHub.
+Questions? Need a feature? Open an issue on GitHub.
 

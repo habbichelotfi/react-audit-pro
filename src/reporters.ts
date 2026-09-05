@@ -41,37 +41,37 @@ function formatFileLocation(finding: Finding): string {
 
 export function renderTextReport(analysis: AnalysisResult): string {
   const lines: string[] = [];
-  lines.push("🔍 Analyse du projet...");
+  lines.push("🔍 Analyzing project...");
   lines.push("");
 
   if (analysis.packageSnapshot.isReactProject) {
-    lines.push(`✅ React ${analysis.packageSnapshot.reactVersion ?? "détecté"}`);
+    lines.push(`✅ React ${analysis.packageSnapshot.reactVersion ?? "detected"}`);
   } else {
-    lines.push("⚠️ Aucun projet React clairement détecté");
+    lines.push("⚠️ No clear React project detected");
   }
 
   if (analysis.packageSnapshot.hasTypeScript) {
-    lines.push("✅ TypeScript activé");
+    lines.push("✅ TypeScript enabled");
   } else {
-    lines.push("ℹ️ TypeScript non détecté");
+    lines.push("ℹ️ TypeScript not detected");
   }
 
   lines.push("");
-  lines.push("⚠️ Problèmes détectés :");
+  lines.push("⚠️ Detected issues:");
   lines.push("");
 
   const problemFindings = analysis.findings.filter((finding) => finding.severity !== "info");
   if (problemFindings.length === 0) {
-    lines.push("Aucun problème majeur détecté.");
+    lines.push("No major issues detected.");
   } else {
     problemFindings.forEach((finding, index) => {
       lines.push(`${index + 1}. ${finding.title}`);
       if (finding.file) {
-        lines.push(`   Fichier : ${formatFileLocation(finding)}`);
+        lines.push(`   File: ${formatFileLocation(finding)}`);
       }
       lines.push(`   ${finding.description}`);
       if (finding.suggestions.length > 0) {
-        lines.push("   Suggestions :");
+        lines.push("   Suggestions:");
         for (const suggestion of finding.suggestions) {
           lines.push(`   - ${suggestion}`);
         }
@@ -82,7 +82,7 @@ export function renderTextReport(analysis: AnalysisResult): string {
 
   const infoFindings = analysis.findings.filter((finding) => finding.severity === "info");
   if (infoFindings.length > 0) {
-    lines.push("ℹ️ Informations :");
+    lines.push("ℹ️ Information:");
     lines.push("");
     for (const finding of infoFindings) {
       lines.push(`${severityIcon(finding.severity)} ${finding.title}`);
@@ -90,16 +90,16 @@ export function renderTextReport(analysis: AnalysisResult): string {
     lines.push("");
   }
 
-  lines.push("📊 Détail du score :");
+  lines.push("📊 Score breakdown:");
   for (const section of analysis.scoreBreakdown) {
-    lines.push(`- ${section.name} : ${section.score}/${section.maxScore}`);
+    lines.push(`- ${section.name}: ${section.score}/${section.maxScore}`);
   }
   lines.push("");
-  lines.push(`📊 Score global : ${analysis.score}/100 ${scoreEmoji(analysis.score)}`);
+  lines.push(`📊 Overall score: ${analysis.score}/100 ${scoreEmoji(analysis.score)}`);
 
   if (analysis.recommendations.length > 0) {
     lines.push("");
-    lines.push("Recommandations prioritaires :");
+    lines.push("Priority recommendations:");
     analysis.recommendations.forEach((item, index) => {
       lines.push(`${index + 1}. ${item}`);
     });
@@ -111,7 +111,7 @@ export function renderTextReport(analysis: AnalysisResult): string {
     lines.push(analysis.ai.summary);
   } else if (analysis.ai?.skippedReason) {
     lines.push("");
-    lines.push(`🤖 IA non utilisée : ${analysis.ai.skippedReason}`);
+    lines.push(`🤖 AI not used: ${analysis.ai.skippedReason}`);
   }
 
   return lines.join("\n").trimEnd() + "\n";
@@ -154,13 +154,13 @@ export function renderHtmlReport(analysis: AnalysisResult): string {
     .join("");
 
   const aiBlock = analysis.ai?.enabled && analysis.ai.summary
-    ? `<section class="card"><h2>Suggestion IA</h2><p class="muted">${escapeHtml(analysis.ai.provider)}${analysis.ai.model ? ` / ${escapeHtml(analysis.ai.model)}` : ""}</p><p>${escapeHtml(analysis.ai.summary)}</p></section>`
+    ? `<section class="card"><h2>AI suggestion</h2><p class="muted">${escapeHtml(analysis.ai.provider)}${analysis.ai.model ? ` / ${escapeHtml(analysis.ai.model)}` : ""}</p><p>${escapeHtml(analysis.ai.summary)}</p></section>`
     : analysis.ai?.skippedReason
-      ? `<section class="card"><h2>Suggestion IA</h2><p>${escapeHtml(analysis.ai.skippedReason)}</p></section>`
+      ? `<section class="card"><h2>AI suggestion</h2><p>${escapeHtml(analysis.ai.skippedReason)}</p></section>`
       : "";
 
   return `<!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -243,20 +243,20 @@ export function renderHtmlReport(analysis: AnalysisResult): string {
     <header>
       <div>
         <h1>React Health Check</h1>
-        <p class="muted">Analyse du projet : ${escapeHtml(analysis.rootDir)}</p>
+        <p class="muted">Project analysis: ${escapeHtml(analysis.rootDir)}</p>
       </div>
       <div class="hero">
         <section class="card score ${scoreClass(analysis.score)}">
-          <div class="muted">Score global</div>
+          <div class="muted">Overall score</div>
           <div class="value">${analysis.score}/100</div>
-          <div>${scoreEmoji(analysis.score)} Qualité globale</div>
+          <div>${scoreEmoji(analysis.score)} Overall quality</div>
         </section>
         <section class="card stack">
           <div class="meta">
-            <span class="pill ${analysis.packageSnapshot.isReactProject ? "good" : "bad"}">${analysis.packageSnapshot.isReactProject ? "React détecté" : "React non détecté"}</span>
-            <span class="pill ${analysis.packageSnapshot.hasTypeScript ? "good" : "warn"}">TypeScript ${analysis.packageSnapshot.hasTypeScript ? "activé" : "absent"}</span>
-            <span class="pill">${analysis.stats.components} composants</span>
-            <span class="pill">${analysis.stats.testFiles} tests</span>
+            <span class="pill ${analysis.packageSnapshot.isReactProject ? "good" : "bad"}">${analysis.packageSnapshot.isReactProject ? "React detected" : "React not detected"}</span>
+            <span class="pill ${analysis.packageSnapshot.hasTypeScript ? "good" : "warn"}">TypeScript ${analysis.packageSnapshot.hasTypeScript ? "enabled" : "not detected"}</span>
+            <span class="pill">${analysis.stats.components} components</span>
+            <span class="pill">${analysis.stats.testFiles} test files</span>
             <span class="pill">${analysis.stats.anyCount} any</span>
           </div>
           <ul class="list">
@@ -268,7 +268,7 @@ export function renderHtmlReport(analysis: AnalysisResult): string {
 
     <section class="stack" style="margin-bottom: 24px;">
       <div class="card">
-        <h2>Recommandations prioritaires</h2>
+        <h2>Priority recommendations</h2>
         <ol>${recommendationItems}</ol>
       </div>
       ${aiBlock}
@@ -277,7 +277,7 @@ export function renderHtmlReport(analysis: AnalysisResult): string {
     <section>
       <h2>Findings</h2>
       <div class="grid">
-        ${findingsHtml || `<div class="card">Aucun problème majeur détecté.</div>`}
+        ${findingsHtml || `<div class="card">No major issues detected.</div>`}
       </div>
     </section>
   </div>

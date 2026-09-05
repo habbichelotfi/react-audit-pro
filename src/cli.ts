@@ -9,11 +9,11 @@ const program = new Command();
 
 program
   .name("react-audit")
-  .description("Analyse un projet React et génère un score de qualité avec recommandations.")
-  .argument("[target]", "Répertoire du projet à analyser", ".")
+  .description("Analyze a React project and generate a quality score with recommendations.")
+  .argument("[target]", "Project directory to analyze", ".")
   .option("-f, --format <format>", "text | json | html", "text")
-  .option("-o, --output <file>", "Fichier de sortie pour le rapport")
-  .option("--ai", "Activer les suggestions IA")
+  .option("-o, --output <file>", "Output file for the report")
+  .option("--ai", "Enable AI suggestions")
   .option("--ai-provider <provider>", "openai | azure | auto", "auto")
   .option("--ai-model <model>")
   .option("--ai-base-url <url>")
@@ -53,17 +53,17 @@ program
       if (outputPath) {
         await fs.writeFile(outputPath, output, "utf8");
         if (format === "html") {
-          console.log(`Rapport HTML généré : ${outputPath}`);
+          console.log(`HTML report generated: ${outputPath}`);
         } else {
           console.log(output);
-          console.log(`\nRapport écrit dans : ${outputPath}`);
+          console.log(`\nReport written to: ${outputPath}`);
         }
       } else {
         process.stdout.write(output);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`react-audit a rencontré une erreur : ${message}`);
+      console.error(`react-audit encountered an error: ${message}`);
       process.exitCode = 1;
     }
   });

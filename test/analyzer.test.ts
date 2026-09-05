@@ -10,6 +10,7 @@ async function createFixtureProject(): Promise<string> {
   await fs.mkdir(path.join(root, "src", "components"), { recursive: true });
   await fs.mkdir(path.join(root, "src", "utils"), { recursive: true });
   await fs.mkdir(path.join(root, "tests"), { recursive: true });
+  await fs.mkdir(path.join(root, "vendor"), { recursive: true });
 
   const packageJson = {
     name: "fixture-app",
@@ -63,12 +64,13 @@ ${fillerLines}
   await fs.writeFile(path.join(root, "src", "components", "Dashboard.tsx"), dashboard, "utf8");
   await fs.writeFile(path.join(root, "src", "utils", "formatDate.ts"), utils, "utf8");
   await fs.writeFile(path.join(root, "tests", "smoke.test.ts"), testFile, "utf8");
+  await fs.writeFile(path.join(root, "vendor", "third-party.ts"), "export const ignored: any = true;\n", "utf8");
 
   return root;
 }
 
 describe("analyzeProject", () => {
-  it("detecte les principaux problèmes React et génère des rapports", async () => {
+  it("detects common React issues, generates reports, and ignores vendor files", async () => {
     const root = await createFixtureProject();
     const analysis = await analyzeProject(root);
 
@@ -79,13 +81,14 @@ describe("analyzeProject", () => {
     expect(analysis.stats.useEffectIssues).toBeGreaterThan(0);
     expect(analysis.stats.mapCallbacksWithoutKeys).toBeGreaterThan(0);
     expect(analysis.stats.anyCount).toBeGreaterThan(0);
+    expect(analysis.files.some((file) => file.file.includes("vendor/"))).toBe(false);
     expect(analysis.stats.bundleEstimateKb).toBeGreaterThan(0);
     expect(analysis.findings.some((finding) => finding.id === "bundle-moment")).toBe(true);
     expect(analysis.score).toBeGreaterThanOrEqual(0);
     expect(analysis.score).toBeLessThan(100);
 
     const textReport = renderTextReport(analysis);
-    expect(textReport).toContain("Score global");
+    expect(textReport).toContain("Overall score");
     expect(textReport).toContain("React");
     expect(textReport).toContain("useEffect");
 

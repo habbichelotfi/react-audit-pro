@@ -3,6 +3,7 @@ import path from "node:path";
 
 export const DEFAULT_IGNORED_DIRS = new Set([
   "node_modules",
+  "vendor",
   ".git",
   ".next",
   "dist",
