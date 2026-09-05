@@ -31,6 +31,15 @@ program
         : undefined;
 
     try {
+      if (!["text", "json", "html"].includes(format)) {
+        throw new Error(`Unsupported format "${format}". Use text, json, or html.`);
+      }
+
+      const targetStats = await fs.stat(rootDir).catch(() => undefined);
+      if (!targetStats?.isDirectory()) {
+        throw new Error(`Target directory does not exist or is not a directory: ${rootDir}`);
+      }
+
       const analysis = await analyzeProject(rootDir, {
         ai: Boolean(options.ai),
         aiProvider: options.aiProvider as "openai" | "azure" | "auto" | undefined,

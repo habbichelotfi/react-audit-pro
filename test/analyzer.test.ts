@@ -39,6 +39,7 @@ interface Props {
 export function Dashboard(props: Props) {
 ${fillerLines}
   const items = [1, 2, 3];
+  const otherItems = [4];
   const local: any = props.value;
 
   useEffect(() => {
@@ -53,12 +54,17 @@ ${fillerLines}
           <li>{item}</li>
         ))}
       </ul>
+      <ul>
+        {otherItems.map((item) => (
+          <li>{item}</li>
+        ))}
+      </ul>
     </section>
   );
 }
 `;
 
-  const utils = `export const formatDate = (input: any) => input;\n`;
+  const utils = `export const formatDate = (input: any) => input;\nexport const loadLodash = () => import("lodash");\n`;
   const testFile = `import { describe, it, expect } from "vitest";\ndescribe("smoke", () => {\n  it("works", () => {\n    expect(true).toBe(true);\n  });\n});\n`;
 
   await fs.writeFile(path.join(root, "src", "components", "Dashboard.tsx"), dashboard, "utf8");
@@ -81,6 +87,8 @@ describe("analyzeProject", () => {
     expect(analysis.stats.useEffectIssues).toBeGreaterThan(0);
     expect(analysis.stats.mapCallbacksWithoutKeys).toBeGreaterThan(0);
     expect(analysis.stats.anyCount).toBeGreaterThan(0);
+    expect(analysis.stats.unusedDependencyCount).toBe(1);
+    expect(new Set(analysis.findings.map((finding) => finding.id)).size).toBe(analysis.findings.length);
     expect(analysis.files.some((file) => file.file.includes("vendor/"))).toBe(false);
     expect(analysis.stats.bundleEstimateKb).toBeGreaterThan(0);
     expect(analysis.findings.some((finding) => finding.id === "bundle-moment")).toBe(true);

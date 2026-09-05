@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs/promises";
 import { parse } from "@babel/parser";
 import * as traverseModule from "@babel/traverse";
 import type { AnalysisResult, AiSummary, Finding, FileSummary, PackageSnapshot, ScoreSection } from "./types.js";
@@ -140,7 +141,7 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
   const packageHasUtilsDir = files.some((file) => normalizeRelativePath(relativeFrom(resolvedRoot, file)).startsWith("src/utils/"));
 
   for (const file of sourceFiles) {
-    const content = await import("node:fs/promises").then((fs) => fs.readFile(file, "utf8"));
+    const content = await fs.readFile(file, "utf8");
     const relativeFile = relativeFrom(resolvedRoot, file);
     const lineCount = countLines(content);
     sourceFilesByDir.set(path.dirname(relativeFile), (sourceFilesByDir.get(path.dirname(relativeFile)) ?? 0) + 1);
@@ -199,6 +200,15 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
         }
       },
       CallExpression(pathRef: any) {
+        if (pathRef.node.callee?.type === "Import") {
+          const source = pathRef.node.arguments?.[0];
+          const packageName = source?.type === "StringLiteral" ? getPackageNameFromImport(source.value) : undefined;
+          if (packageName) {
+            importedPackages.add(packageName);
+            rootImports.add(packageName);
+          }
+        }
+
         const calleeName = getCalleeName(pathRef.node.callee);
         if (calleeName === "useEffect") {
           useEffectCount += 1;
@@ -218,7 +228,7 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
 
         if (calleeName === "map") {
           mapCallbackCount += 1;
-          const issue = analyzeMapCallback(pathRef.node, content, relativeFile);
+          const issue = analyzeMapCallback(pathRef.node, relativeFile, allFindings.length);
           if (issue) {
             mapCallbackWithoutKeyCount += 1;
             allFindings.push({ finding: issue, penalty: 2 });
@@ -755,7 +765,7 @@ function analyzeUseEffectCall(node: { arguments: unknown[] }, content: string, f
   return issueCount;
 }
 
-function analyzeMapCallback(node: { arguments: unknown[] }, content: string, file: string): Finding | undefined {
+function analyzeMapCallback(node: { arguments: unknown[] }, file: string, findingIndex: number): Finding | undefined {
   const callback = node.arguments[0];
   if (!isFunctionLike(callback)) {
     return undefined;
@@ -772,7 +782,7 @@ function analyzeMapCallback(node: { arguments: unknown[] }, content: string, fil
   }
 
   return {
-    id: `missing-key-${file}-${content.length}`,
+    id: `missing-key-${file}-${findingIndex}`,
     severity: "warning",
     title: "List rendered without a stable key",
     description: "A map appears to return JSX elements without a stable key.",
