@@ -88,6 +88,7 @@ describe("analyzeProject", () => {
     expect(analysis.stats.mapCallbacksWithoutKeys).toBeGreaterThan(0);
     expect(analysis.stats.anyCount).toBeGreaterThan(0);
     expect(analysis.stats.unusedDependencyCount).toBe(1);
+    expect(analysis.stats.unusedDependencies).toEqual(["moment"]);
     expect(new Set(analysis.findings.map((finding) => finding.id)).size).toBe(analysis.findings.length);
     expect(analysis.files.some((file) => file.file.includes("vendor/"))).toBe(false);
     expect(analysis.stats.bundleEstimateKb).toBeGreaterThan(0);
@@ -99,10 +100,12 @@ describe("analyzeProject", () => {
     expect(textReport).toContain("Overall score");
     expect(textReport).toContain("React");
     expect(textReport).toContain("useEffect");
+    expect(textReport).toContain("moment");
 
     const htmlReport = renderHtmlReport(analysis);
     expect(htmlReport).toContain("<!doctype html>");
     expect(htmlReport).toContain("React Health Check");
+    expect(htmlReport).toContain("moment");
   });
 });
 

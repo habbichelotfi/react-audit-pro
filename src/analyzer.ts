@@ -3,6 +3,9 @@ import fs from "node:fs/promises";
 import { parse } from "@babel/parser";
 import * as traverseModule from "@babel/traverse";
 import type { AnalysisResult, AiSummary, Finding, FileSummary, PackageSnapshot, ScoreSection } from "./types.js";
+import { findingRuleId } from "./baseline.js";
+import { measureBundleMetadata } from "./bundle-metadata.js";
+import type { AuditConfigOverrides } from "./config.js";
 import {
   clamp,
   countLines,
@@ -19,6 +22,7 @@ import {
 } from "./utils.js";
 
 export interface AnalyzeOptions {
+  config?: AuditConfigOverrides;
   ai?: boolean;
   aiProvider?: "openai" | "azure" | "auto" | undefined;
   aiModel?: string | undefined;
@@ -78,7 +82,8 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
   const resolvedRoot = path.resolve(rootDir);
   const packageJsonPath = path.join(resolvedRoot, "package.json");
   const packageJson = (await readJson<JsonRecord>(packageJsonPath)) ?? {};
-  const files = await walkFiles(resolvedRoot);
+  const config = options.config;
+  const files = await walkFiles(resolvedRoot, config?.ignorePaths ?? []);
   const sourceFiles = files.filter(isSourceFile);
   const testFiles = files.filter(isTestFile);
 
@@ -257,6 +262,7 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
             componentFiles,
             componentsOutsideDedicatedFolder,
             summary,
+            lineThreshold: config?.thresholds?.componentLines ?? 300,
           });
           componentCount += 1;
           if (isLarge) {
@@ -281,6 +287,7 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
             componentFiles,
             componentsOutsideDedicatedFolder,
             summary,
+            lineThreshold: config?.thresholds?.componentLines ?? 300,
           });
           componentCount += 1;
           if (isLarge) {
@@ -300,6 +307,7 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
             componentFiles,
             componentsOutsideDedicatedFolder,
             summary,
+            lineThreshold: config?.thresholds?.componentLines ?? 300,
           });
           componentCount += 1;
           if (isLarge) {
@@ -320,6 +328,36 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
     allFindings.push({ finding, penalty: 3 });
   }
   bundleEstimateKb = bundleFindings.reduce((sum, finding) => sum + extractBundleImpactKb(finding.title), 0);
+
+  let realBundle: Awaited<ReturnType<typeof measureBundleMetadata>> | undefined;
+  if (config?.bundleMetadata) {
+    realBundle = await measureBundleMetadata(resolvedRoot, config.bundleMetadata);
+    allFindings.push({
+      finding: {
+        id: "bundle-measured",
+        ruleId: "bundle-size",
+        severity: "info",
+        title: `Measured ${realBundle.tool} bundle: ${realBundle.kilobytes} KB`,
+        description: `${realBundle.files} JavaScript output file(s), ${realBundle.bytes} bytes total, read from ${config.bundleMetadata}.`,
+        suggestions: [],
+      },
+      penalty: 0,
+    });
+    const maxBundleKb = config.thresholds?.maxBundleKb ?? 0;
+    if (maxBundleKb > 0 && realBundle.bytes > maxBundleKb * 1024) {
+      allFindings.push({
+        finding: {
+          id: "bundle-size-threshold",
+          ruleId: "bundle-size",
+          severity: "warning",
+          title: `${realBundle.tool} bundle is ${realBundle.kilobytes} KB (limit: ${maxBundleKb} KB)`,
+          description: `Measured ${realBundle.files} JavaScript output file(s), totaling ${realBundle.bytes} bytes.`,
+          suggestions: ["Use code splitting and lazy loading.", "Inspect the build output for unexpectedly large dependencies."],
+        },
+        penalty: 3,
+      });
+    }
+  }
 
   const architecture: AnalysisResult["architecture"] = {
     hasComponentsDir: packageHasComponentsDir,
@@ -351,6 +389,7 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
     anyCount,
     bundleEstimateKb,
     unusedDependencyCount: unusedDependencies.length,
+    unusedDependencies,
   };
 
   if (packageSnapshot.isReactProject) {
@@ -463,7 +502,7 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
         id: "unused-dependencies",
         severity: "info",
         title: `Unused runtime dependencies: ${unusedDependencies.length}`,
-        description: "Some dependencies declared in package.json do not appear to be used in the source code.",
+        description: `These dependencies declared in package.json do not appear to be used in the source code: ${unusedDependencies.join(", ")}.`,
         suggestions: ["Remove unused dependencies.", "Check dynamic imports or build-time usage if needed."],
       },
       penalty: Math.min(5, unusedDependencies.length),
@@ -484,11 +523,22 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
     });
   }
 
-  const architectureScore = scoreArchitecture(architecture, componentCount);
-  const performanceScore = scorePerformance(stats, hasReactBundleSignals);
+  const disabledRules = new Set(config?.disabledRules ?? []);
+  const architectureScore = disabledRules.has("architecture") ? 20 : scoreArchitecture(architecture, componentCount);
+  const performanceScore = scorePerformance({
+    ...stats,
+    useEffectIssues: disabledRules.has("use-effect") ? 0 : stats.useEffectIssues,
+    mapCallbacksWithoutKeys: disabledRules.has("missing-keys") ? 0 : stats.mapCallbacksWithoutKeys,
+    bundleEstimateKb: disabledRules.has("bundle-size") ? 0 : Math.max(stats.bundleEstimateKb, realBundle?.kilobytes ?? 0),
+  }, hasReactBundleSignals);
   const testsScore = scoreTests(testCoverageEstimate, testFiles.length);
-  const typescriptScore = scoreTypescript(anyCount, packageSnapshot.hasTypeScript);
-  const maintainabilityScore = scoreMaintainability(largeComponentCount, unusedDependencies.length, useEffectIssueCount, componentCount);
+  const typescriptScore = scoreTypescript(disabledRules.has("typescript-any") ? 0 : anyCount, packageSnapshot.hasTypeScript);
+  const maintainabilityScore = scoreMaintainability(
+    disabledRules.has("large-components") ? 0 : largeComponentCount,
+    disabledRules.has("unused-dependencies") ? 0 : unusedDependencies.length,
+    disabledRules.has("use-effect") ? 0 : useEffectIssueCount,
+    componentCount,
+  );
 
   const scoreBreakdown: ScoreSection[] = [
     {
@@ -569,6 +619,7 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
   });
 
   const findings = allFindings
+    .filter((entry) => !disabledRules.has(findingRuleId(entry.finding)))
     .sort((a, b) => severityWeight(b.finding.severity) - severityWeight(a.finding.severity))
     .map((entry) => entry.finding);
 
@@ -578,6 +629,15 @@ export async function analyzeProject(rootDir: string, options: AnalyzeOptions = 
     architecture,
     files: fileSummaries,
     stats,
+    ...(realBundle ? {
+      stats: {
+        ...stats,
+        realBundleBytes: realBundle.bytes,
+        realBundleKb: realBundle.kilobytes,
+        realBundleTool: realBundle.tool,
+        realBundleFiles: realBundle.files,
+      },
+    } : {}),
     findings,
     recommendations,
     scoreBreakdown,
@@ -669,8 +729,9 @@ function registerComponentCandidate(input: {
   componentFiles: Set<string>;
   componentsOutsideDedicatedFolder: Set<string>;
   summary: FileSummary;
+  lineThreshold: number;
 }): boolean {
-  const { name, file, node, content, allFindings, componentFiles, componentsOutsideDedicatedFolder, summary } = input;
+  const { name, file, node, content, allFindings, componentFiles, componentsOutsideDedicatedFolder, summary, lineThreshold } = input;
   const startLine = node.loc?.start.line ?? 1;
   const endLine = node.loc?.end.line ?? startLine;
   const lineCount = Math.max(1, endLine - startLine + 1);
@@ -681,13 +742,14 @@ function registerComponentCandidate(input: {
     componentsOutsideDedicatedFolder.add(file);
   }
 
-  if (lineCount > 300) {
+  if (lineCount > lineThreshold) {
     allFindings.push({
       finding: {
         id: `large-component-${file}-${name}`,
         severity: "warning",
         title: `${name} — ${lineCount} lignes`,
-        description: "This component exceeds the recommended limit of 300 lines.",
+        ruleId: "large-components",
+        description: `This component exceeds the configured limit of ${lineThreshold} lines.`,
         file,
         line: startLine,
         suggestions: ["Extract domain hooks.", "Separate UI from logic.", "Split into smaller subcomponents."],

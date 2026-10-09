@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { matchesIgnorePath } from "./config.js";
 
 export const DEFAULT_IGNORED_DIRS = new Set([
   "node_modules",
@@ -84,21 +85,24 @@ export function dedupeStrings(values: string[]): string[] {
   return unique(values.filter(Boolean));
 }
 
-export async function walkFiles(rootDir: string): Promise<string[]> {
+export async function walkFiles(rootDir: string, ignorePaths: string[] = []): Promise<string[]> {
   const results: string[] = [];
 
   async function visit(currentDir: string): Promise<void> {
     const entries = await fs.readdir(currentDir, { withFileTypes: true });
     for (const entry of entries) {
+      const entryPath = path.join(currentDir, entry.name);
+      const relativeEntryPath = relativeFrom(rootDir, entryPath);
+      if (matchesIgnorePath(relativeEntryPath, ignorePaths)) continue;
       if (entry.isDirectory()) {
         if (DEFAULT_IGNORED_DIRS.has(entry.name)) {
           continue;
         }
-        await visit(path.join(currentDir, entry.name));
+        await visit(entryPath);
         continue;
       }
 
-      results.push(path.join(currentDir, entry.name));
+      results.push(entryPath);
     }
   }
 

@@ -2,6 +2,7 @@ export type IssueSeverity = "info" | "warning" | "critical";
 
 export interface Finding {
   id: string;
+  ruleId?: string;
   severity: IssueSeverity;
   title: string;
   description: string;
@@ -74,12 +75,19 @@ export interface AnalysisResult {
     useCallbackCount: number;
     anyCount: number;
     bundleEstimateKb: number;
+    realBundleBytes?: number;
+    realBundleKb?: number;
+    realBundleTool?: "esbuild" | "webpack" | "vite";
+    realBundleFiles?: number;
     unusedDependencyCount: number;
+    unusedDependencies: string[];
   };
   findings: Finding[];
   recommendations: string[];
   scoreBreakdown: ScoreSection[];
   score: number;
+  baseline?: { ignoredFindings: number };
+  ci?: { passed: boolean; minScore: number; scorePassed: boolean; newFindings: number };
   ai?: AiSummary | undefined;
 }
 

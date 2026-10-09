@@ -56,6 +56,12 @@ export function renderTextReport(analysis: AnalysisResult): string {
     lines.push("ℹ️ TypeScript not detected");
   }
 
+  if (analysis.stats.realBundleKb !== undefined) {
+    lines.push(`Measured bundle (${analysis.stats.realBundleTool}): ${analysis.stats.realBundleKb} KB across ${analysis.stats.realBundleFiles} JavaScript file(s)`);
+  } else if (analysis.stats.bundleEstimateKb > 0) {
+    lines.push(`Heuristic dependency-size estimate: ${analysis.stats.bundleEstimateKb} KB (not a build measurement)`);
+  }
+
   lines.push("");
   lines.push("⚠️ Detected issues:");
   lines.push("");
@@ -86,6 +92,9 @@ export function renderTextReport(analysis: AnalysisResult): string {
     lines.push("");
     for (const finding of infoFindings) {
       lines.push(`${severityIcon(finding.severity)} ${finding.title}`);
+      if (finding.id === "unused-dependencies") {
+        lines.push(`   ${finding.description}`);
+      }
     }
     lines.push("");
   }
@@ -258,6 +267,7 @@ export function renderHtmlReport(analysis: AnalysisResult): string {
             <span class="pill">${analysis.stats.components} components</span>
             <span class="pill">${analysis.stats.testFiles} test files</span>
             <span class="pill">${analysis.stats.anyCount} any</span>
+            ${analysis.stats.realBundleKb !== undefined ? `<span class="pill">Measured bundle: ${analysis.stats.realBundleKb} KB (${escapeHtml(analysis.stats.realBundleTool ?? "build")})</span>` : `<span class="pill">Dependency estimate: ${analysis.stats.bundleEstimateKb} KB</span>`}
           </div>
           <ul class="list">
             ${scoreRows}
